@@ -1,0 +1,150 @@
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.pyplot import figure
+import seaborn as sns
+from sklearn.preprocessing import RobustScaler,StandardScaler,MinMaxScaler, LabelEncoder,OrdinalEncoder,power_transform
+from sklearn.model_selection import cross_val_score,train_test_split
+from sklearn.compose import TransformedTargetRegressor
+from sklearn.linear_model import LinearRegression,Ridge,RidgeCV, ElasticNetCV, LassoCV,BayesianRidge
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+# from xgboost import XGBRegressor
+from sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error
+
+
+# In[76]:
+
+
+df_train = pd.read_csv("train.csv")
+df_test = pd.read_csv("test.csv")
+df_train.info()
+df_test.info()
+
+
+# In[77]:
+
+
+sns.displot(df_train['SalePrice'])
+df_train['SalePrice'].describe()
+
+
+# In[78]:
+
+
+cor = df_train.corr()
+col = cor.nlargest (10, 'SalePrice')['SalePrice'].index
+cm = np.corrcoef(df_train[col].values.T)
+sns.set(font_scale=1.25)
+hm = sns.heatmap(cm, cbar=True, annot=True, square=True, fmt='.2f', annot_kws={'size':10}, yticklabels=col.values, xticklabels=col.values)
+
+
+# In[79]:
+
+
+col = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
+sns.pairplot(df_train[col], height=2.5)
+
+
+# In[80]:
+
+
+df_train = df_train[df_train.GrLivArea<4400]
+sns.pairplot(df_train[col], height=2.5)
+
+
+# In[81]:
+
+
+x_col=col.copy()
+x_col.remove("SalePrice")
+x_train = df_train[x_col]
+print("******* TRAIN SET INFO")
+x_train.info()
+print("\n******** TEST SET INFO")
+x_col=col.copy()
+x_col.remove("SalePrice")
+x_test = df_test[x_col]
+x_test.info()
+
+
+# In[82]:
+
+
+x_test = x_test.fillna(value=0)
+x_test.info()
+
+
+# In[84]:
+
+
+rscaler=RobustScaler()
+x_train = rscaler.fit_transform(x_train)
+x_test = rscaler.fit_transform(x_test)
+y_train = df_train ["SalePrice"]
+
+
+# In[85]:
+
+
+LR_model = LinearRegression()
+
+LR_scores = cross_val_score(LR_model, x_train, y_train, cv=5, scoring="neg_root_mean_squared_error")
+LR_mean_score = LR_scores.mean()
+LR_std_score = LR_scores.std()
+print(f"RMSE = {LR_scores}")
+print(f"Mean RMSE = {LR_mean_score:.2f}")
+print(f"StDev RMSE = {LR_std_score:.2f}")
+
+
+# In[86]:
+
+
+DT_model = DecisionTreeRegressor(random_state=0)
+
+DT_scores = cross_val_score(DT_model, x_train, y_train, cv=5, scoring="neg_root_mean_squared_error")
+DT_mean_score = DT_scores.mean()
+DT_std_score = DT_scores.std()
+print(f"RMSE = {DT_scores}")
+print(f"Mean RMSE = {DT_mean_score:.2f}")
+print(f"StDev RMSE = {DT_std_score:.2f}")
+
+
+# In[87]:
+
+
+RF_model = RandomForestRegressor(random_state=0)
+
+RF_scores = cross_val_score(RF_model, x_train, y_train, cv=5, scoring="neg_root_mean_squared_error")
+RF_mean_score = RF_scores.mean()
+RF_std_score = RF_scores.std()
+print(f"RMSE = {RF_scores}")
+print(f"Mean RMSE = {RF_mean_score:.2f}")
+print(f"StDev RMSE = {RF_std_score:.2f}")
+
+
+# In[90]:
+
+
+LR_model.fit(x_train, np.log(y_train))
+test_pred = np.exp(LR_model.predict(x_test))
+pred = pd.concat([df_test["Id"],pd.Series(test_pred,name='SalePrice')],axis=1)
+pred['Id'] = pred['Id'].astype('int')
+pred.to_csv('submission.csv', index=False)
+
+
+# In[91]:
+
+
+DT_model.fit(x_train, np.log(y_train))
+test_pred = np.exp(DT_model.predict(x_test))
+pred = pd.concat([df_test["Id"],pd.Series(test_pred,name='SalePrice')],axis=1)
+pred['Id'] = pred['Id'].astype('int')
+pred.to_csv('DT.csv', index=False)
+
+
+
+

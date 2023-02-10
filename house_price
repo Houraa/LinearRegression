@@ -141,8 +141,6 @@ pred.to_csv('submission.csv', index=False)
 
 DT_model.fit(x_train, np.log(y_train))
 test_pred = np.exp(DT_model.predict(x_test))
-pred = pd.concat([df_test["Id"],pd.Series(test_pred,name='SalePrice')],axis=1)
-pred['Id'] = pred['Id'].astype('int')
 pred.to_csv('DT.csv', index=False)
 
 
